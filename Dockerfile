@@ -23,6 +23,8 @@ COPY . .
 RUN npm run build
 
 # Expose the port
+COPY nginx.conf /etc/nginx/conf.d/nginx.conf
+RUN rm /etc/nginx/sites-enabled/default
 EXPOSE 80
 
 # Start the nginx server
