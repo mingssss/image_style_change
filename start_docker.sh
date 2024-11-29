@@ -1,1 +1,1 @@
-docker run -it -p 80:80 image_style_change
+docker run -d -p 80:80 image_style_change
