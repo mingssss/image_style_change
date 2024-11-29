@@ -1,0 +1,242 @@
+<template>
+
+  <div class="common-layout">
+
+
+    <el-row :gutter="20">
+      <!-- Left Column -->
+      <el-col :span="12">
+        <el-card>
+          <!-- Model and Style Selection -->
+          <el-row :gutter="10">
+            <el-col :span="12">
+              <el-select v-model="selectedModel" placeholder="模型选择">
+                <el-option label="模型1" value="model1"/>
+                <el-option label="模型2" value="model2"/>
+              </el-select>
+            </el-col>
+            <el-col :span="12">
+              <el-select v-model="selectedStyle" placeholder="风格选择">
+                <el-option label="油画" value="style1"/>
+                <el-option label="素描" value="style2"/>
+                <el-option label="抽象" value="style3"/>
+                <el-option label="复古" value="style4"/>
+              </el-select>
+            </el-col>
+          </el-row>
+
+          <!-- Image Upload -->
+          <el-divider content-position="center">原始图片</el-divider>
+          <el-upload
+              class="upload-demo"
+              drag
+              action=""
+              :show-file-list="true"
+          >
+            <i class="el-icon-upload"></i>
+            <div class="el-upload__text">将文件拖到此处，或 <em>点击上传</em></div>
+            <div class="el-upload__tip" slot="tip">只接受jpg/png/BMP文件</div>
+          </el-upload>
+
+
+          <!-- Toggle Button -->
+          <el-divider content-position="center">风格设置</el-divider>
+          <el-switch v-model="layoutMode" active-text="提示词模式" inactive-text="风格图模式"
+                     style="--el-switch-on-color: #b7b7b7; --el-switch-off-color: #b7b7b7"/>
+
+          <!-- Images Grid -->
+          <div v-if="!layoutMode">
+            <el-upload action="#" list-type="picture-card" :auto-upload="false"
+                       :on-remove="handleRemove">
+              <el-icon>
+                <Plus/>
+              </el-icon>
+
+              <template #file="{ file }">
+                <div>
+                  <img class="el-upload-list__item-thumbnail" :src="file.url" alt=""/>
+                  <span class="el-upload-list__item-actions">
+          <span
+              class="el-upload-list__item-preview"
+              @click="handlePictureCardPreview(file)"
+          >
+            <el-icon><zoom-in/></el-icon>
+          </span>
+          <span
+              v-if="!disabled"
+              class="el-upload-list__item-delete"
+              @click="handleRemove(file)"
+          >
+            <el-icon><Delete/></el-icon>
+          </span>
+        </span>
+                </div>
+              </template>
+            </el-upload>
+
+            <el-dialog v-model="dialogVisible">
+              <img w-full :src="dialogImageUrl" alt="Preview Image"/>
+            </el-dialog>
+          </div>
+
+          <div v-if="layoutMode">
+            <el-input
+                v-model="textarea"
+                style="width: 680px"
+                :rows="6"
+                type="textarea"
+                placeholder="请描述你希望做出的改动"
+            />
+          </div>
+          <el-divider content-position="center">参数调节</el-divider>
+          <el-row :gutter="10" style="margin-top: 10px;">
+            <el-col :span="11">
+              <div class="slider-demo-block">
+                <span class="demonstration">融合比例</span>
+                <el-slider v-model="blendRatio" :min="0" :max="100" show-input size="small"/>
+              </div>
+              <div class="slider-demo-block">
+                <span class="demonstration">亮度</span>
+                <el-slider v-model="brightness" :min="0" :max="100" show-input size="small"/>
+              </div>
+            </el-col>
+
+            <el-col :span="11" :offset="1">
+              <div class="slider-demo-block">
+                <span class="demonstration">透明度</span>
+                <el-slider v-model="transparency" :min="0" :max="100" show-input size="small"/>
+              </div>
+              <div class="slider-demo-block">
+                <span class="demonstration">饱和度</span>
+                <el-slider v-model="saturation" :min="0" :max="100" show-input size="small"/>
+              </div>
+            </el-col>
+          </el-row>
+          <div class="form-bottom">
+            <el-row :gutter="10" style="margin-top: 20px;">
+              <el-button type="danger" @click="reset">重置</el-button>
+              <el-button type="primary" @click="submit">提交</el-button>
+            </el-row>
+          </div>
+        </el-card>
+      </el-col>
+
+      <!-- Right Column -->
+      <el-col :span="12">
+        <el-card>
+          <el-row>
+            <el-text class="mx-1" type="primary" size="large">
+              <el-icon color="#409eff">
+                <Check/>
+              </el-icon>
+              生成成功
+            </el-text>
+
+          </el-row>
+
+          <el-divider content-position="center">生成结果</el-divider>
+          <div class="demo-image__lazy">
+            <el-image :src="'https://fuss10.elemecdn.com/a/3f/3302e58f9a181d2509f3dc0fa68b0jpeg.jpeg'" lazy/>
+          </div>
+          <br>
+          <div class="form-bottom">
+            <el-button type="primary" @click="submit">下载图片</el-button>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+  </div>
+
+</template>
+
+<script lang="ts">
+import {ref} from 'vue';
+import { Check, Delete, Plus, ZoomIn} from '@element-plus/icons-vue';
+
+import {ElMessage, UploadFile} from 'element-plus';
+import { getImage } from '@/utils/api';
+
+
+export default {
+  components: {Check, Delete, Plus, ZoomIn},
+  setup() {
+    const dialogImageUrl = ref('')
+    const dialogVisible = ref(false)
+    const disabled = ref(false)
+
+    const selectedModel = ref('');
+    const selectedStyle = ref('');
+    const blendRatio = ref(50);
+    const brightness = ref(50);
+    const transparency = ref(50);
+    const saturation = ref(50);
+    const layoutMode = ref(false);
+    const textarea = ref('');
+
+
+
+    const addImage = () => {
+      // Logic to add image
+    };
+
+    const handleRemove = (file: UploadFile) => {
+      console.log(file)
+    }
+
+    const handlePictureCardPreview = (file: UploadFile) => {
+      dialogImageUrl.value = file.url!
+      dialogVisible.value = true
+    }
+
+    const reset = () => {
+      selectedModel.value = '';
+      selectedStyle.value = '';
+      blendRatio.value = 50;
+      brightness.value = 50;
+      transparency.value = 50;
+      saturation.value = 50;
+    };
+
+    const submit = async () => {
+      // Logic to submit form
+
+      console.log("下载图片")
+      try {
+        const response = await getImage("./static/output/1731144962569_out_2.png");
+        console.log(response)
+        //alert(response.message); // 提示用户注册成功
+      } catch (error) {
+        alert('请求失败，请重试');
+      }
+    };
+
+    return {
+      disabled,
+      dialogVisible,
+      dialogImageUrl,
+      selectedModel,
+      selectedStyle,
+      blendRatio,
+      brightness,
+      transparency,
+      saturation,
+      layoutMode,
+      textarea,
+      addImage,
+      reset,
+      submit,
+      handleRemove,
+      handlePictureCardPreview
+    };
+  },
+};
+</script>
+
+<style scoped>
+
+.form-bottom {
+  display: flex;
+  justify-content: flex-end;
+}
+
+</style>

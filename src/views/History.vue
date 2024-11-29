@@ -1,0 +1,202 @@
+<template>
+  <el-divider content-position="center">历史记录</el-divider>
+  <el-container>
+
+
+    <el-main>
+      <el-row :gutter="20">
+        <el-col :span="8" v-for="(historyItem, index) in historyData" :key="index">
+          <el-card :body-style="{ padding: '20px' }">
+            <!-- Additional Information -->
+            <div class="info">
+              <el-row>
+                <el-col :span="12"><strong>Style Model:</strong> {{ historyItem.style_model }}</el-col>
+                <el-col :span="12"><strong>Created At:</strong> {{ formatDate(historyItem.created_at) }}</el-col>
+              </el-row>
+            </div>
+            <!-- Display content image -->
+            <el-divider content-position="center">原始图片</el-divider>
+            <div class="image-container">
+              <el-image :src="historyItem.content_image_url" :initial-index="0"
+                        :preview-src-list="[historyItem.content_image_url]" alt="Style Image" class="style-image"/>
+            </div>
+            <!-- Style Images -->
+            <el-divider content-position="center">风格图片</el-divider>
+            <div class="style-images">
+              <el-row :gutter="10">
+                <el-col :span="12" v-for="(styleImage, idx) in historyItem.style_image_urls" :key="idx">
+                  <el-image :src="styleImage" :initial-index="idx" :preview-src-list="historyItem.style_image_urls"
+                            alt="Style Image" class="style-image"/>
+                </el-col>
+              </el-row>
+            </div>
+            <el-divider content-position="center">结果图片</el-divider>
+            <!-- Result Images -->
+            <div class="result-images">
+              <el-row :gutter="10">
+                <el-col :span="12" v-for="(resultImage, idx) in historyItem.result_image_url" :key="idx">
+                  <el-image :src="resultImage" :preview-src-list="historyItem.result_image_url" :initial-index="idx"
+                            alt="Result Image" class="result-image"/>
+
+                </el-col>
+                <div v-if="historyItem.video_urls.length > 0">
+                  <div class="media-item" v-for="(videoUrl, index) in historyItem.video_urls" :key="index">
+                    <video :src="videoUrl" controls class="result-image">
+                      您的浏览器不支持播放该视频
+                    </video>
+                  </div>
+                </div>
+              </el-row>
+            </div>
+
+
+          </el-card>
+        </el-col>
+      </el-row>
+    </el-main>
+  </el-container>
+</template>
+
+<script>
+import {onMounted, ref} from 'vue';
+import {ElCard, ElRow, ElCol, ElContainer, ElHeader, ElMain} from 'element-plus';
+import {getHistory, getImage} from "@/utils/api.js";
+
+export default {
+  name: 'History',
+  components: {
+    ElCard,
+    ElRow,
+    ElCol,
+    ElContainer,
+    ElHeader,
+    ElMain
+  },
+  setup() {
+    // //"history": [
+    //     {
+    //         "history_id": 1,
+    //         "content_image_url": "/static/uploads/content.jpg",
+    //         "style_image_urls": [
+    //             "/static/uploads/style1.jpg",
+    //             "/static/uploads/style2.jpg"
+    //         ],
+    //         "result_image_url": [  // 如果为vgg19模型，返回每个epoch的结果
+    //             "/static/output/style1.jpg",
+    //             "/static/output/style2.jpg"
+    //         ],
+    //         "style_model": "vgg19",
+    //         "created_at": "2024-10-29T12:34:56"
+    //     }
+    // ]
+    // 所以historyData的结构为
+    const historyData = ref([]);
+    //当页面加载时，获取历史记录
+    const user_id = localStorage.getItem('user_id');
+    onMounted(() => {
+      console.log('获取历史记录')
+      getHistory(user_id || "test").then(async res => {
+        console.log(res.history)
+        for (let i = 0; i < res.history.length; i++) {
+          //应该使用push，而不是直接赋值
+          historyData.value.push({
+            history_id: 0,
+            content_image_url: "",
+            style_image_urls: [],
+            result_image_url: [],
+            video_urls: [],
+            style_model: "",
+            created_at: ""
+          });
+          historyData.value[i].history_id = res.history[i].history_id;
+          historyData.value[i].created_at = res.history[i].created_at;
+          historyData.value[i].style_model = res.history[i].style_model;
+
+          // 获取内容图片
+          const response = await getImage(res.history[i].content_image_url);
+          const binaryData = response.data
+          const contentType = response.headers['content-type']
+          // 将二进制数据转换为 Blob
+          const blob = new Blob([binaryData], {type: contentType});
+          // 生成 Blob URL
+          historyData.value[i].content_image_url = URL.createObjectURL(blob);
+
+          // 获取风格图片
+          for (let j = 0; j < res.history[i].style_image_urls.length; j++) {
+            const response = await getImage(res.history[i].style_image_urls[j]);
+            const binaryData = response.data
+            const contentType = response.headers['content-type']
+            const blob = new Blob([binaryData], {type: contentType});
+            historyData.value[i].style_image_urls[j] = URL.createObjectURL(blob);
+          }
+
+          // 获取结果图片
+          for (let j = 0; j < res.history[i].result_image_url.length; j++) {
+            const response = await getImage(res.history[i].result_image_url[j]);
+            const binaryData = response.data
+            const contentType = response.headers['content-type']
+            console.log(contentType)
+            const blob = new Blob([binaryData], {type: contentType});
+            if (contentType.startsWith('image/')) {
+              // 显示图片
+              console.log("显示图片")
+              historyData.value[i].result_image_url[j] = URL.createObjectURL(blob);
+            } else if (contentType.startsWith('video/')) {
+              console.log("显示视频")
+              console.log(res.history[i])
+              // 显示视频，videoUrls应该是historyData.value[i].video_urls
+              historyData.value[i].video_urls.push(URL.createObjectURL(blob));
+              //videoUrls.value.push(URL.createObjectURL(blob));
+            }
+          }
+          // 删除historyData.value[i].result_image_url中视频的url，也就是删除不以blob:开头的url
+          historyData.value[i].result_image_url = historyData.value[i].result_image_url.filter(url => url.startsWith('blob:'));
+          //console.log(historyData.value[i].result_image_url)
+        }
+      });
+    });
+    // Helper function to format date
+    const formatDate = (dateString) => {
+      const date = new Date(dateString);
+      return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+    };
+
+    return {
+      historyData,
+      formatDate
+    };
+  }
+};
+</script>
+
+<style scoped>
+.image-container {
+  text-align: center;
+}
+
+.image {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.style-image, .result-image {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.info {
+  margin-top: 20px;
+  color: #666;
+}
+
+h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+</style>

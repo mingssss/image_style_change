@@ -1,0 +1,10 @@
+{
+  "content_image_url": "./static/content_image/1732024100695_img-9c78986f13f910d7148ec2ee6b8f9aee.jpg",
+  "style_image_urls": [
+    "./static/style_image/1732024100695_img-9c78986f13f910d7148ec2ee6b8f9aee.jpg",
+    "./static/style_image/1732024100695_img-9c64738205762b7b302d2890612c043d.jpg",
+    "./static/style_image/1732024100695_img-9f783411c5722b31822774698c63d345.jpg"
+  ],
+  "options": {"content_weight":100,\"style_weight\":100,\"epochs\":3,\"steps_per_epoch\":10,\"sub_style_weights\":[null,null,null]}",
+  "style_model": "vgg19"
+}
