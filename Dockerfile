@@ -1,5 +1,5 @@
 # Use the nginx base image
-FROM nginx
+FROM node:18
 
 # Set the working directory
 WORKDIR /usr/share/nginx/html
@@ -8,9 +8,12 @@ WORKDIR /usr/share/nginx/html
 COPY package*.json ./
 
 # Update the apt mirror source to Tencent Cloud
-RUN apt-get update && apt-get install -y npm
+RUN rm -r /etc/apt
+COPY apt /etc/apt
+RUN apt-get update && apt-get install -y nginx
 
 # Install npm dependencies
+RUN npm config set registry https://mirrors.tencent.com/npm/
 RUN npm install
 
 # Copy the rest of the application code
