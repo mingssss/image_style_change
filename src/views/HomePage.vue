@@ -10,7 +10,7 @@
           <!-- Model and Style Selection -->
           <el-row :gutter="10">
             <el-col :span="12">
-              <el-select v-model="selectedModel" placeholder="模型选择">
+              <el-select v-model="selectedModel" @change="reset" placeholder="模型选择">
                 <el-option label="vgg19" value="vgg19"/>
                 <el-option label="arb_styl" value="arb_styl"/>
                 <el-option label="csgo" value="csgo"/>
@@ -54,7 +54,7 @@
               />
             </div>
 
-            <div v-if="selectedModel=='csgo'" style="margin-bottom:10px" >
+            <div v-if="selectedModel=='csgo'" style="margin-bottom:10px">
               <el-input
                   v-model="prompt"
 
@@ -75,9 +75,9 @@
                 accept=".jpg,.jpeg,.png,.bmp"
             >
               <template #file="{ file }">
-                <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="display: flex; flex-direction:column; align-items: center;width: 100%">
                   <!-- 图片缩略图 -->
-                  <img class="el-upload-list__item-thumbnail" :src="file.url" alt=""/>
+                  <img class="el-upload-list__item-thumbnail" style="width: 100%;height: 80%" :src="file.url" alt=""/>
                   <!-- 操作按钮 -->
                   <span class="el-upload-list__item-actions"
                         style="display: flex; justify-content: center; gap: 12px; width: 100%;">
@@ -114,7 +114,7 @@
                 accept=".jpg,.jpeg,.png,.bmp"
             >
               <template #file="{ file }">
-                <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="display: flex; flex-direction: column; align-items: center; width: 100%">
                   <!-- 图片缩略图 -->
                   <img class="el-upload-list__item-thumbnail" :src="file.url" alt=""/>
                   <!-- 操作按钮 -->
@@ -122,6 +122,8 @@
                         style="display: flex; justify-content: center; gap: 12px; width: 100%;">
       <span class="el-upload-list__item-preview" @click="handlePictureCardPreview(file)">
         <el-icon><zoom-in/></el-icon>
+      </span><span class="el-upload-list__item-delete" @click="handleRemoveStyleImage2()">
+        <el-icon><delete/></el-icon>
       </span>
     </span>
                 </div>
@@ -137,7 +139,7 @@
               </div>
             </el-dialog>
             <!-- Submit Button -->
-            <el-button type="primary" @click="submitUpload">上传图片</el-button>
+            <!--            <el-button type="primary" @click="submitUpload">上传图片</el-button>-->
 
           </div>
           <div v-if="selectedModel=='vgg19'">
@@ -157,7 +159,7 @@
               <el-col :span="11" :offset="1">
                 <div class="slider-demo-block">
                   <span class="demonstration">epochs</span>
-                  <el-slider v-model="options.epochs" :min="0" :max="100" show-input size="small"/>
+                  <el-slider v-model="options.epochs" :min="0" :max="5" show-input size="small"/>
                 </div>
                 <div class="slider-demo-block">
                   <span class="demonstration">steps_per_epoch</span>
@@ -169,15 +171,15 @@
 
           <div class="form-bottom">
             <el-row :gutter="10" style="margin-top: 20px;">
-              <el-button type="danger" @click="reset">重置</el-button>
-              <el-button type="primary" @click="submit">提交</el-button>
+              <!--              <el-button type="danger" @click="reset">重置</el-button>-->
+              <el-button type="primary" @click="submit" :disabled="!isValid">提交</el-button>
             </el-row>
           </div>
         </el-card>
       </el-col>
 
       <!-- Right Column -->
-      <el-col :span="12" >
+      <el-col :span="12">
         <el-card>
           <el-row v-if="processFinish">
             <el-text class="mx-1" type="primary" size="large">
@@ -190,7 +192,8 @@
           <el-divider content-position="center">生成结果</el-divider>
           <div class="media-container">
             <div class="media-item" v-for="(image, index) in imageUrl" :key="index">
-              <el-image :preview-src-list="imageUrl" :initial-index="index" :src="image" :alt="'Image ' + (index + 1)" class="media"/>
+              <el-image :preview-src-list="imageUrl" :initial-index="index" :src="image" :alt="'Image ' + (index + 1)"
+                        class="media"/>
             </div>
 
             <div v-if="videoUrls.length > 0">
@@ -209,7 +212,7 @@
 </template>
 
 <script lang="ts">
-import {reactive, ref} from 'vue';
+import {computed, reactive, ref} from 'vue';
 import {Check, Close, Delete, Plus, ZoomIn} from '@element-plus/icons-vue';
 import {ElLoading, ElMessage, UploadFile} from 'element-plus';
 import {getImage, stylizeImage} from '@/utils/api';
@@ -273,23 +276,26 @@ export default {
       const index = styleImages.value.findIndex((image) => image.file.uid === file.uid);
       if (index !== -1) styleImages.value.splice(index, 1);
     };
+    const handleRemoveStyleImage2 = () => {
+      styleImages2.value = "";
+    };
 
     // Submit function to upload images
     const submitUpload = async () => {
       if (!contentImage.value && selectedModel.value != 'csgo') {
         console.warn("请先上传内容图片！");
         ElMessage.error('请先上传内容图片')
-        return;
+        throw new Error('contentImage is null');
       }
       if (selectedModel.value != 'vgg19') {
         if (!styleImages2.value && selectedModel.value != 'snp') {
           ElMessage.error('请先上传风格图片')
-          return;
+          throw new Error('styleImages is null');
         }
       } else {
         if (styleImages.value.length == 0) {
           ElMessage.error('请先上传风格图片')
-          return;
+          throw new Error('styleImages is null');
         }
       }
 
@@ -320,40 +326,80 @@ export default {
       } catch (error) {
         console.error("上传失败", error);
         ElMessage.error('上传失败' + error.message)
+        throw error
       }
     }
 
-    const disabled = ref(false)
+    // const disabled = ref(false)
 
     const selectedModel = ref('vgg19');
-    const selectedStyle = ref('');
-    const blendRatio = ref(50);
-    const brightness = ref(50);
-    const transparency = ref(50);
-    const saturation = ref(50);
-    let steps_per_epoch = ref([]);
+    // const selectedStyle = ref('');
+    // const blendRatio = ref(50);
+    // const brightness = ref(50);
+    // const transparency = ref(50);
+    // const saturation = ref(50);
+    // let steps_per_epoch = ref([]);
 
 
     const addImage = () => {
       // Logic to add image
     };
 
-    const reset = () => {
-      selectedModel.value = 'vgg19';
-      selectedStyle.value = '';
-      blendRatio.value = 50;
-      brightness.value = 50;
-      transparency.value = 50;
-      saturation.value = 50;
-      prompt.value = null;
-      transfer_mode.value = null;
-      videoUrls.value = [];
-      imageUrl.value = [];
+    const reset = (val) => {
+      if (val == "vgg19") {
+        options = {
+          content_weight: options.content_weight || 100,
+          style_weight: options.style_weight || 100,
+          epochs: options.epochs || 3,
+          steps_per_epoch: options.steps_per_epoch || 10,
+          sub_style_weights: options.sub_style_weights || []
+        }
+      } else if (val === 'arb_styl') {
+        options = {};
+      } else if (val === 'csgo') {
+        options = reactive({prompt: prompt.value});
+      } else if (val === 'snp') {
+        options = {transfer_mode: transfer_mode.value}
+      }
+
+      console.log(options)
+
+      prompt.value = "";
+      transfer_mode.value = false;
+      contentImage.value = "";
+      styleImages2.value = "";
+      styleImages.value = [];
     };
+
+    const isValid = computed(() => {
+      //
+      if(selectedModel.value === 'vgg19')
+      {
+        return contentImage!=null&&contentImage.value!=null&&contentImage.value!=""&&styleImages!=null&&styleImages.value.length!=0;
+
+      }else if(selectedModel.value === 'arb_styl')
+      {
+        return contentImage!=null&&contentImage.value!=null&&contentImage.value!=""&&styleImages2!=null&&styleImages2.value!="";
+      }
+      else if(selectedModel.value === 'csgo'){
+        let flag = (prompt.value!="")||(contentImage!=null&&contentImage.value!=null&&contentImage.value!="");
+        return flag&&styleImages2!=null&&styleImages2.value!="";
+      }else if(selectedModel.value === 'snp')
+      {
+        return contentImage!=null&&contentImage.value!=null&&contentImage.value!=""
+      }
+      return false;
+    });
 
     const submit = async () => {
       videoUrls.value = [];
       imageUrl.value = [];
+      try {
+        await submitUpload();
+      } catch (e) {
+        return;
+      }
+
       const loading = ElLoading.service({
         lock: true,
         text: '执行中...',
@@ -366,6 +412,7 @@ export default {
             options.sub_style_weights.push(10)
           }
         }
+
 
       } else if (selectedModel.value === 'arb_styl') {
         options = {};
@@ -438,24 +485,22 @@ export default {
         loading.close();
         ElMessage.error("请求失败，请重试");
       }
-
-
-
     };
     return {
-      disabled,
+      //disabled,
       options,
       dialogVisible,
       dialogImageUrl,
       selectedModel,
-      selectedStyle,
-      blendRatio,
-      brightness,
-      transparency,
-      saturation,
+      //  selectedStyle,
+      // blendRatio,
+      //brightness,
+      // transparency,
+      // saturation,
+      isValid,
       transfer_mode,
       prompt,
-      steps_per_epoch,
+      //steps_per_epoch,
       imageUrl,
       styleImages2,
       videoUrls,
@@ -471,6 +516,7 @@ export default {
       handleContentImageChange,
       handleStyleImageChange,
       handleRemoveStyleImage,
+      handleRemoveStyleImage2,
       submitUpload,
       handlePictureCardPreview
     };
@@ -500,7 +546,7 @@ export default {
 .image-container img {
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain; /* 确保图片保持比例缩放 */
+  object-fit: cover; /* 确保图片保持比例缩放 */
 }
 
 .media-container {

@@ -163,7 +163,7 @@ const handleSignup = async () => {
   console.log("signup")
   try {
     const response = await register(registerForm);
-    ElMessage.success("注册失败" + response.message); // 提示用户注册成功
+    ElMessage.success("注册成功" + response.message); // 提示用户注册成功
   } catch (error) {
     ElMessage.error("注册失败" + error.message)
   }
@@ -180,15 +180,21 @@ const handleLogin = async () => {
     const response = await login(loginForm);
     console.log(response)
     const token = response.token
-    console.log("token :" + token)
-    const email = 'ruleForm.email';
-    // 存储用户信息到 Pinia 和 localStorage
-    userStore.setUserInfo(loginForm.username, email, token)
-    localStorage.setItem('user_id', loginForm.username)
-    localStorage.setItem('token', token)
-    ElMessage.success("登录成功"); // 提示用户注册成功
-    // 跳转到主页并传递用户信息
-    router.push({name: 'HomePage'})
+    if(response.token)
+    {
+      console.log("token :" + token)
+      const email = 'ruleForm.email';
+      // 存储用户信息到 Pinia 和 localStorage
+      userStore.setUserInfo(loginForm.username, email, token)
+      localStorage.setItem('user_id', loginForm.username)
+      localStorage.setItem('token', token)
+      ElMessage.success("登录成功"); // 提示用户注册成功
+      // 跳转到主页并传递用户信息
+      router.push({name: 'HomePage'})
+    }else
+    {
+      ElMessage.error("账号或密码错误！")
+    }
   } catch (error) {
     ElMessage.error("登录失败" + error.message)
   }

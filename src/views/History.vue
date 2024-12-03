@@ -1,8 +1,6 @@
 <template>
   <el-divider content-position="center">历史记录</el-divider>
   <el-container>
-
-
     <el-main>
       <el-row :gutter="20">
         <el-col :span="8" v-for="(historyItem, index) in historyData" :key="index">
@@ -12,13 +10,30 @@
               <el-row>
                 <el-col :span="12"><strong>Style Model:</strong> {{ historyItem.style_model }}</el-col>
                 <el-col :span="12"><strong>Created At:</strong> {{ formatDate(historyItem.created_at) }}</el-col>
+                <el-col v-if="historyItem.style_model==='csgo'" :span="12"><strong>Prompt:</strong>
+                  {{ historyItem.params.prompt }}
+                </el-col>
+                <el-col v-if="historyItem.style_model==='snp'" :span="12"><strong>transfer_mode:</strong>
+                  {{ historyItem.params.transfer_mode }}
+                </el-col>
+                <el-col v-if="historyItem.style_model==='vgg19'">
+                  <el-button
+                      :type="'primary'"
+                      link
+                      @click="show_option(historyItem.params)"
+                  >
+                    点击查看详细参数
+                  </el-button>
+                </el-col>
               </el-row>
             </div>
             <!-- Display content image -->
-            <el-divider content-position="center">原始图片</el-divider>
-            <div class="image-container">
-              <el-image :src="historyItem.content_image_url" :initial-index="0"
-                        :preview-src-list="[historyItem.content_image_url]" alt="Style Image" class="style-image"/>
+            <div v-if="historyItem.content_image_url">
+              <el-divider content-position="center">原始图片</el-divider>
+              <div class="image-container">
+                <el-image :src="historyItem.content_image_url" :initial-index="0"
+                          :preview-src-list="[historyItem.content_image_url]" alt="Style Image" class="style-image"/>
+              </div>
             </div>
             <!-- Style Images -->
             <el-divider content-position="center">风格图片</el-divider>
@@ -53,12 +68,27 @@
           </el-card>
         </el-col>
       </el-row>
+      <el-dialog v-model="is_show_options" title="详细参数查看" width="30%" center align-center draggable >
+        <el-descriptions title="详细参数">
+          <el-descriptions-item label="content_weight:">{{params.content_weight}}</el-descriptions-item>
+          <el-descriptions-item label="epochs:">{{params.epochs}}</el-descriptions-item>
+          <el-descriptions-item label="style_weight:">{{params.style_weight}}</el-descriptions-item>
+          <el-descriptions-item label="steps_per_epoch:">
+            {{params.steps_per_epoch}}
+          </el-descriptions-item>
+          <el-descriptions-item label="sub_style_weights:">
+            {{params.sub_style_weights}}
+          </el-descriptions-item>
+        </el-descriptions>
+      </el-dialog>
     </el-main>
+
   </el-container>
+
 </template>
 
 <script>
-import {onMounted, ref} from 'vue';
+import {onMounted, reactive, ref} from 'vue';
 import {ElCard, ElRow, ElCol, ElContainer, ElHeader, ElMain} from 'element-plus';
 import {getHistory, getImage} from "@/utils/api.js";
 
@@ -91,6 +121,50 @@ export default {
     // ]
     // 所以historyData的结构为
     const historyData = ref([]);
+    // const historyData = ref([
+    //   {
+    //     "content_image_url": "",
+    //     "created_at": "Sun, 01 Dec 2024 19:36:57 GMT",
+    //     "params": {
+    //       "transfer_mode": false,
+    //     },
+    //     "result_image_url": [
+    //       "./static/output/1733053017313_out.png"
+    //     ],
+    //     "video_urls": [
+    //       "./static/output/1733053017313_out.png"
+    //     ],
+    //     "style_image_urls": [
+    //       "./static/style_image/1733052933939_candy.jpg"
+    //     ],
+    //     "style_model": "snp"
+    //   },
+    //   {
+    //     "content_image_url": "./static/content_image/1733052933935_figures.jpg",
+    //     "created_at": "Sun, 01 Dec 2024 19:43:57 GMT",
+    //     "params": {
+    //       "content_weight": 50,
+    //       "style_weight": 80,
+    //       "epochs": 3,
+    //       "steps_per_epoch": 10,
+    //       "sub_style_weights": [10, 10]
+    //     },
+    //     "result_image_url": [
+    //       "./static/output/1733053437377_out.png"
+    //     ],
+    //     "video_urls": [
+    //       "./static/output/1733053017313_out.png"
+    //     ],
+    //     "style_image_urls": [
+    //       "./static/style_image/1733052933939_candy.jpg"
+    //     ],
+    //     "style_model": "vgg19"
+    //   }
+    // ]);
+
+    // const historyData = ref([
+    //
+    // ]);
     //当页面加载时，获取历史记录
     const user_id = localStorage.getItem('user_id');
     onMounted(() => {
@@ -106,11 +180,13 @@ export default {
             result_image_url: [],
             video_urls: [],
             style_model: "",
-            created_at: ""
+            created_at: "",
+            params: {}
           });
           historyData.value[i].history_id = res.history[i].history_id;
           historyData.value[i].created_at = res.history[i].created_at;
           historyData.value[i].style_model = res.history[i].style_model;
+          historyData.value[i].params = res.history[i].params;
 
           // 获取内容图片
           const response = await getImage(res.history[i].content_image_url);
@@ -160,10 +236,24 @@ export default {
       const date = new Date(dateString);
       return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
     };
-
+    let is_show_options = ref(false);
+    let params = ref({
+      "content_weight": 100,
+      "style_weight": 100,
+      "epochs": 3,
+      "steps_per_epoch": 10,
+      "sub_style_weights": [10, 10]
+    })
+    const show_option = (option) => {
+      params.value = option
+      is_show_options.value = true;
+    }
     return {
       historyData,
-      formatDate
+      formatDate,
+      is_show_options,
+      show_option,
+      params
     };
   }
 };

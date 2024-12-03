@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 //const url = "127.0.0.1:5000/api"  //改IP地址
-const url = "127.0.0.1:5000/"
+const url = "127.0.0.1:5000/api"
 // 设置基础请求 URL
 const apiUrl = 'http://' + url
 
@@ -20,7 +20,7 @@ const api = axios.create({
 api.interceptors.request.use(
     (config) => {
         let serverIP = localStorage.getItem('server_ip')
-        config.baseURL = 'http://'+serverIP+':5000/api';
+        config.baseURL = 'http://'+serverIP+':5000/';
         const token = localStorage.getItem('token'); //
         console.log("拦截器生效")
         console.log("token_from_local:"+token)
