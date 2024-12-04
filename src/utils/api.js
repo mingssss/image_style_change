@@ -20,7 +20,7 @@ const api = axios.create({
 api.interceptors.request.use(
     (config) => {
         let serverIP = localStorage.getItem('server_ip')
-        config.baseURL = 'http://'+serverIP+':5000/';
+        config.baseURL = 'http://'+serverIP+':5000/api';
         const token = localStorage.getItem('token'); //
         console.log("拦截器生效")
         console.log("token_from_local:"+token)
